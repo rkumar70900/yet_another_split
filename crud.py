@@ -95,3 +95,61 @@ def create_expense(db: Session, expense: schemas.ExpenseCreate):
         raise Exception("All mentioned friends are not friends with "
                         "the user creating the expense")
     return db_expense
+
+
+def create_group(db: Session, group: schemas.GroupCreate):
+    """
+    Create a new group in the database.
+    
+    Args:
+        db (Session): SQLAlchemy database session.
+        group (schemas.GroupCreate): Pydantic schema containing group details.
+    
+    Returns:
+        models.Group: The created group instance.
+    """
+    db_group = models.Group(group_name=group.group_name, creator_id=group.creator_id)
+    db.add(db_group)
+    db.commit()
+    db.refresh(db_group)
+
+    # Add the creator to the group memberships
+    db_membership = models.GroupMembership(
+        group_id=db_group.group_id,
+        user_id=group.creator_id,
+        added_by_id=group.creator_id
+    )
+    db.add(db_membership)
+    db.commit()
+    db.refresh(db_membership)
+
+
+    return db_group
+
+
+def add_member_to_group(db: Session, membership: schemas.GroupMembershipCreate):
+    """
+    Adds a new member to a group.
+
+    Args:
+    - db (Session): The database session.
+    - membership (schemas.GroupMembershipCreate): The membership data including group_id, user_id, and added_by_id.
+
+    Returns:
+    - models.GroupMembership: The newly created group membership entry.
+    """
+    # Create a new GroupMembership object with the provided data
+    db_membership = models.GroupMembership(
+        group_id=membership.group_id,
+        user_id=membership.user_id,
+        added_by_id=membership.added_by_id # Ensure the current timestamp is set for when the member was added
+    )
+    # Add the new membership record to the session
+    db.add(db_membership)
+    # Commit the transaction to save the new record in the database
+    db.commit()
+    # Refresh the instance to ensure it has the updated data from the database
+    db.refresh(db_membership)
+    # Return the newly created GroupMembership record
+    return db_membership
+
