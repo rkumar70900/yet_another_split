@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
-from datetime import datetime, timezone
 
 
 def create_user(db: Session, user: schemas.UserCreate):
