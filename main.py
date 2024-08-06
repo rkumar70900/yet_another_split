@@ -109,3 +109,10 @@ def add_member_to_group(
     
     # Call CRUD operation to add the new member to the group
     return crud.add_member_to_group(db=db, membership=membership)
+
+
+@app.post("/groups/{group_id}/expenses/", response_model=schemas.GroupExpense)
+def add_group_expense(
+        group_id: int, group_expense: schemas.GroupExpenseCreate, db: Session = Depends(get_db)
+):
+    return crud.create_group_expense(db=db, group_expense=group_expense)

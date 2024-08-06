@@ -133,3 +133,15 @@ class GroupMembership(Base):
     group = relationship("Group", foreign_keys=[group_id])
     user = relationship("User", foreign_keys=[user_id])
     added_by = relationship("User", foreign_keys=[added_by_id])
+
+class GroupExpense(Base):
+    __tablename__ = "group_expenses"
+    id = Column(Integer, primary_key=True, index=True)
+    group_id = Column(Integer, ForeignKey("expense_groups.group_id"))
+    added_by = Column(Integer, ForeignKey("users.user_id"))
+    expense_id = Column(Integer, ForeignKey("expenses.expense_id"))
+    added_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    group = relationship("Group", foreign_keys=[group_id])
+    user = relationship("User", foreign_keys=[added_by])
+    expense = relationship("Expense", foreign_keys=[expense_id])

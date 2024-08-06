@@ -153,3 +153,48 @@ def add_member_to_group(db: Session, membership: schemas.GroupMembershipCreate):
     # Return the newly created GroupMembership record
     return db_membership
 
+
+def create_group_expense(db: Session, group_expense: schemas.GroupExpenseCreate):
+    # Retrieve all members of the group
+    members = db.query(models.GroupMembership).filter(models.GroupMembership.group_id == group_expense.group_id).all()
+    member_ids = [member.user_id for member in members]
+    print(member_ids)
+
+    # Create expense entry and split the amount among all members
+    amount_per_user = group_expense.amount / len(member_ids)
+    print(group_expense.description)
+    print(group_expense.added_by)
+    print(group_expense.amount)
+    expense_create = models.Expense(
+        description=group_expense.description,
+        user_id=group_expense.added_by,
+        amount=group_expense.amount
+    )
+    db.add(expense_create)
+    db.commit()
+    db.refresh(expense_create)
+    print("here")
+    for user_id in member_ids:
+        expense_split = models.Split(
+            expense_id=expense_create.expense_id,
+            user_id=user_id,
+            amount=amount_per_user,
+        )
+        db.add(expense_split)
+        db.commit()
+        db.refresh(expense_split)
+
+    # Create group expense entry
+    db_group_expense = models.GroupExpense(
+        group_id=group_expense.group_id,
+        added_by=group_expense.added_by,
+        expense_id = expense_create.expense_id
+    )
+    db.add(db_group_expense)
+    db.commit()
+    db.refresh(db_group_expense)
+
+
+    return db_group_expense
+
+

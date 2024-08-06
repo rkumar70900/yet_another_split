@@ -198,3 +198,23 @@ class GroupMembership(GroupMembershipBase):
 
     class Config:
         orm_mode = True
+
+class GroupExpenseBase(BaseModel):
+    group_id: int
+    description: str
+    added_by: int
+    amount: float
+
+class GroupExpenseCreate(GroupExpenseBase):
+    pass
+
+class GroupExpense(GroupExpenseBase):
+    id: int
+    added_at: datetime
+    added_by: User
+    group_id: Group
+    expense_id: Expense
+
+    class Config:
+        orm_mode = True
+
