@@ -1,3 +1,6 @@
 splitapi_env/
 .DS_Store
 .ruff_cache/
+split_env/
+__pychache__/
+app/__pychache__/
