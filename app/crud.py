@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-import models, schema
+import models
+import schema
 from sqlalchemy import and_
 from sqlalchemy import distinct
 from sqlalchemy import func
