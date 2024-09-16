@@ -1,6 +1,8 @@
 from sqlalchemy.orm import Session
 import models, schema
-from sqlalchemy import and_, distinct, func, case
+from sqlalchemy import and_
+from sqlalchemy import distinct
+from sqlalchemy import func
 
 def create_user(db: Session, user: schema.UserCreate):
     db_user = models.User(first_name=user.first_name, last_name=user.last_name, email=user.email)
