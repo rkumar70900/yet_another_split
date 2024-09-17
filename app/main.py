@@ -56,5 +56,9 @@ def get_user_expenses(user_email: str, db: Session = Depends(get_db)):
 def get_amount_owed(user_email: str, db: Session = Depends(get_db)):
     return crud.total_owed_by_the_user(db, user_email)
 
+@app.post("/amount_owed_to_each_user/")
+def get_amount_owed_to_each_user(user_email: str, db: Session = Depends(get_db)):
+    return crud.owed_to_each_user(db, user_email)
+
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=3000)

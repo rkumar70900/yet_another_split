@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.orm import aliased
 import models
 import schema
 from sqlalchemy import and_
@@ -96,5 +97,33 @@ def total_owed_by_the_user(db: Session, user_email):
         return {'result': f"You are owed {str(-1 * total)}"}
     else:
         return {'result': f"You owe {str(total)}" }
+    
+def get_user_name_email(db: Session, user_email):
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    return f"{user.first_name}"
+
+def get_user_name_id(db: Session, user_id):
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    return f"{user.first_name}"
+
+def owed_to_each_user(db: Session, user_email):
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    a = aliased(models.Expenses)
+    b = aliased(models.Splits)
+    results = db.query(
+        a.created_by, 
+        func.sum(b.amount).label('total_amount') 
+    ).join(
+        b, a.expense_id == b.expense_id 
+    ).filter(
+        a.created_by != user.user_id, 
+        b.user_id == user.user_id 
+    ).group_by(
+        a.created_by  
+    ).all() 
+    final = {}
+    for row in results:
+        final[get_user_name_id(db,row[0])] = row[1]
+    return final
 
 
