@@ -5,6 +5,7 @@ from database import SessionLocal, engine
 import crud
 import models
 import schema
+import services
 from typing import List
 
 
@@ -21,17 +22,17 @@ def get_db():
 
 @app.post("/users/", response_model=schema.User) # what is response model?
 def create_user(user: schema.UserCreate, db: Session = Depends(get_db)): # what is depends?
-    db_user = crud.create_user(db, user)
+    db_user = services.create_user_service(db, user)
     return db_user
 
 @app.post("/addfriend/", response_model=schema.Friend)
 def add_friend(friend: schema.FriendAdd, db: Session = Depends(get_db)):
-    db_friend = crud.add_friend(db, friend)
+    db_friend = services.add_friend_service(db, friend)
     return db_friend
 
 @app.post("/groups/", response_model=schema.Group)
 def create_group(group: schema.GroupCreate, db: Session = Depends(get_db)):
-    db_group = crud.create_group(db, group)
+    db_group = services.create_group_service(db, group)
     return db_group
 
 @app.post("/addmembertogroup/", response_model=schema.GroupMember)
@@ -52,13 +53,21 @@ def get_users(db: Session = Depends(get_db)):
 def get_user_expenses(user_email: str, db: Session = Depends(get_db)):
     return crud.get_all_expenses(db, user_email)
 
-@app.post("/amount_owed/")
+@app.get("/amount_owed/")
 def get_amount_owed(user_email: str, db: Session = Depends(get_db)):
     return crud.total_owed_by_the_user(db, user_email)
 
-@app.post("/amount_owed_to_each_user/")
+@app.get("/amount_owed_to_each_user/")
 def get_amount_owed_to_each_user(user_email: str, db: Session = Depends(get_db)):
     return crud.owed_to_each_user(db, user_email)
+
+@app.get("/amount_owed_in_each_group/")
+def get_amount_owed_to_each_group(user_email: str, db: Session = Depends(get_db)):
+    return crud.owed_in_each_group(db, user_email)
+
+@app.get("/all_user_groups")
+def get_user_all_groups(user_email: str, db: Session = Depends(get_db)):
+    return crud.user_all_groups(db, user_email)
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=3000)
