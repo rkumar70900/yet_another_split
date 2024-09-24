@@ -88,6 +88,7 @@ def create_group(db: Session, group: schema.GroupCreate):
                         "added_by": user.user_id
         }
         db_group_member = add_user_to_group(db, user_to_group)
+        print(db_group_member)
         return db_group
     except Exception as e:
         db.rollback()
