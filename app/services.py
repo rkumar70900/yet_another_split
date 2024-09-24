@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-import crud, schema
+import crud
+import schema
 from exceptions import UserAlreadyExistsException, UserNotFoundException
 
 def create_user_service(db: Session, user: schema.UserCreate):
