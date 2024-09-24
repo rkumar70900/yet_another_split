@@ -6,6 +6,21 @@ from sqlalchemy import and_
 from sqlalchemy import distinct
 from sqlalchemy import func
 
+"""
+Creates a new user in the database.
+
+ Args:
+    db (Session): The SQLAlchemy session.
+    user (schema.UserCreate): The user to create, containing their first name, last name, and email.
+
+ Returns:
+    models.User: The newly created user object.
+
+ Notes:
+    This function adds the new user to the database using the provided SQLAlchemy session,
+    then commits the changes. It also refreshes the new user object to ensure it has the
+    latest data from the database.
+"""
 def create_user(db: Session, user: schema.UserCreate):
     db_user = models.User(first_name=user.first_name, last_name=user.last_name, email=user.email)
     db.add(db_user)
@@ -13,6 +28,22 @@ def create_user(db: Session, user: schema.UserCreate):
     db.refresh(db_user)
     return db_user
 
+"""
+Adds a new friend to the database if they don't already exist as friends.
+
+ Args:
+    db (Session): The SQLAlchemy session.
+    friend (schema.FriendAdd): A dictionary containing the email addresses of two users.
+
+ Returns:
+    models.Friends: The newly created friendship object, or None if the users are already friends.
+
+ Notes:
+    This function first checks if both users exist in the database. If they do not,
+    it raises an exception. Then, it queries the database to see if the two users
+    are already friends. If they are not, it creates a new friendship object and adds
+    it to the database.
+"""
 def add_friend(db: Session, friend: schema.FriendAdd):
     user_id = db.query(models.User).filter(models.User.email == friend.user_email).first()
     friend_id = db.query(models.User).filter(models.User.email == friend.friend_email).first()
@@ -26,13 +57,41 @@ def add_friend(db: Session, friend: schema.FriendAdd):
     else:
         raise Exception({"error": f"{user_id.first_name} and {friend_id.first_name} are already friends"})
 
+"""
+Creates a new group in the database.
+
+ Args:
+    db (Session): The SQLAlchemy session.
+    group (schema.GroupCreate): A dictionary containing information about the new group, including its name
+                                 and the email of the user who created it.
+
+ Returns:
+    models.Groups: The newly created group object.
+
+ Notes:
+    This function first checks if the user exists in the database. If they do not,
+    it raises an exception. Then, it creates a new group object and adds it to the database.
+    It also adds the creator of the group as its member.
+"""
 def create_group(db: Session, group: schema.GroupCreate):
-    user = db.query(models.User).filter(models.User.email == group.created_by).first()
-    db_group = models.Groups(group_name=group.group_name, created_by=user.user_id)
-    db.add(db_group)
-    db.commit()
-    db.refresh(db_group)
-    return db_group
+    try:
+        user = db.query(models.User).filter(models.User.email == group.created_by).first()
+        if not user:
+            raise Exception({"error": f"User {group.created_by} does not exist"})
+        db_group = models.Groups(group_name=group.group_name, created_by=user.user_id)
+        db.add(db_group)
+        db.commit()
+        db.refresh(db_group)
+        user_to_group = {
+                        "groupmember_user_email": group.created_by, 
+                        "groupmember_group_id": db_group.group_id, 
+                        "added_by": user.user_id
+        }
+        db_group_member = add_user_to_group(db, user_to_group)
+        return db_group
+    except Exception as e:
+        db.rollback()
+        raise e
 
 def add_user_to_group(db: Session, group_member: schema.GroupMemberAdd):
     user = db.query(models.User).filter(models.User.email == group_member.groupmember_user_email).first()
@@ -98,16 +157,16 @@ def total_owed_by_the_user(db: Session, user_email):
     else:
         return {'result': f"You owe {str(total)}" }
     
-def get_user_name_email(db: Session, user_email):
+def get_user(db: Session, user_email):
     user = db.query(models.User).filter(models.User.email == user_email).first()
-    return f"{user.first_name}"
+    return user
 
-def get_user_name_id(db: Session, user_id):
+def get_user_by_id(db: Session, user_id):
     user = db.query(models.User).filter(models.User.user_id == user_id).first()
-    return f"{user.first_name}"
+    return user
 
 def owed_to_each_user(db: Session, user_email):
-    user = db.query(models.User).filter(models.User.email == user_email).first()
+    user = get_user(db, user_email)
     a = aliased(models.Expenses)
     b = aliased(models.Splits)
     results = db.query(
@@ -123,7 +182,50 @@ def owed_to_each_user(db: Session, user_email):
     ).all() 
     final = {}
     for row in results:
-        final[get_user_name_id(db,row[0])] = row[1]
+        final[get_user_by_id(db,row[0]).first_name] = row[1]
     return final
+
+def owed_in_each_group(db: Session, user_email):
+    user = get_user(db, user_email)
+    Group = aliased(models.Groups)
+    Expense = aliased(models.Expenses)
+    Split = aliased(models.Splits)
+
+    results = db.query(
+        Group.group_name, 
+        func.sum(Split.amount).label('total_amount')
+    ).join(
+        Expense, Expense.group_id == Group.group_id
+    ).join(
+        Split, Split.expense_id == Expense.expense_id
+    ).filter(
+        Expense.group_id.isnot(None),
+        Split.user_id == user.user_id
+    ).group_by(
+        Group.group_name
+    ).distinct().all()
+
+    final = {}
+    for row in results:
+        final[row[0]] = row[1] 
+    return final
+
+def user_all_groups(db: Session, user_email):
+    user = get_user(db, user_email)
+    Group = aliased(models.Groups)
+    GroupMembers = aliased(models.GroupMembers)
+
+    # Query
+    results = db.query(
+        Group.group_name
+    ).join(
+        GroupMembers, GroupMembers.groupmember_group_id == Group.group_id
+    ).filter(
+        GroupMembers.groupmember_user_id == user.user_id
+    ).distinct().all()
+
+    final = [i[0] for i in results]
+
+    return final  
 
 
