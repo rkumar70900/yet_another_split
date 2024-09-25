@@ -157,14 +157,6 @@ def total_owed_by_the_user(db: Session, user_email):
         return {'result': f"You are owed {str(-1 * total)}"}
     else:
         return {'result': f"You owe {str(total)}" }
-    
-def get_user(db: Session, user_email):
-    user = db.query(models.User).filter(models.User.email == user_email).first()
-    return user
-
-def get_user_by_id(db: Session, user_id):
-    user = db.query(models.User).filter(models.User.user_id == user_id).first()
-    return user
 
 def owed_to_each_user(db: Session, user_email):
     user = get_user(db, user_email)
@@ -228,5 +220,17 @@ def user_all_groups(db: Session, user_email):
     final = [i[0] for i in results]
 
     return final  
+
+def get_user(db: Session, user_email):
+    user = db.query(models.User).filter(models.User.email == user_email).first()
+    return user
+
+def get_user_by_id(db: Session, user_id):
+    user = db.query(models.User).filter(models.User.user_id == user_id).first()
+    return user
+
+def get_group(db: Session, group_id):
+    group = db.query(models.Groups).filter(models.Groups.group_id == group_id).first()
+    return group
 
 
