@@ -37,7 +37,7 @@ def create_group(group: schema.GroupCreate, db: Session = Depends(get_db)):
 
 @app.post("/addmembertogroup/", response_model=schema.GroupMember)
 def add_user_to_group(group_member: schema.GroupMemberAdd, db: Session = Depends(get_db)):
-    db_groupmeber = crud.add_user_to_group(db, group_member)
+    db_groupmeber = services.add_member_to_group_service(db, group_member)
     return db_groupmeber
 
 @app.post("/addexpense", response_model=schema.Expense)
